@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html class="h-full" lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link rel="stylesheet" href="../static/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="shortcut icon" href="../static/img/h.png" type="image/x-icon">
+    <title>Hephaestus Motor Inc - Company Dashboard</title>
+</head>
+<body class="antialiased h-full">
+    <div class="h-full w-full flex overflow-auto antialiased text-gray-800 bg-white">
+        <!-- Sidebar -->
+        <nav class="flex-none flex flex-col items-center text-center bg-slate-900 text-gray-400 border-r">
+            <div class="h-26 flex flex-col items-center w-full p-4">
+                <h2 class="text-amber-500 font-bold text-sm">HEPHAESTUS</h2>
+                <img src="../static/img/h.png" alt="logo" class="h-10 w-10 rounded-full object-cover">
+            </div>
+            <ul>
+                <li><a href="#dashboard" class="nav-item h-16 px-6 flex items-center text-white bg-slate-700 w-full" data-section="dashboard">
+                    <svg class="fill-current h-5 w-5 mx-auto" viewBox="0 0 24 24"><path d="M12 6.453l9 8.375v9.172h-6v-6h-6v6h-6v-9.172l9-8.375zm12 5.695l-12-11.148-12 11.133 1.361 1.465 10.639-9.868 10.639 9.883 1.361-1.465z"/></svg>
+                </a></li>
+                <li><a href="#customers" class="nav-item h-16 px-6 flex items-center hover:text-white w-full" data-section="customers">
+                    <svg class="fill-current h-5 w-5 mx-auto" viewBox="0 0 24 24"><path d="M19 7.001c0 3.865-3.134 7-7 7s-7-3.135-7-7c0-3.867 3.134-7.001 7-7.001s7 3.134 7 7.001zm-1.598 7.18c-1.506 1.137-3.374 1.82-5.402 1.82-2.03 0-3.899-.685-5.407-1.822-4.072 1.793-6.593 7.376-6.593 9.821h24c0-2.423-2.6-8.006-6.598-9.819z"/></svg>
+                </a></li>
+                <li><a href="#meters" class="nav-item h-16 px-6 flex items-center hover:text-white w-full" data-section="meters">
+                    <svg class="fill-current h-5 w-5 mx-auto" viewBox="0 0 24 24"><path d="M12 0c-6.627 0-12 5.373-12 12s5.373 12 12 12 12-5.373 12-12-5.373-12-12-12zm1 18h-2v-6h2v6zm0-8h-2v-2h2v2z"/></svg>
+                </a></li>
+                <li><a href="#readings" class="nav-item h-16 px-6 flex items-center hover:text-white w-full" data-section="readings">
+                    <svg class="fill-current h-5 w-5 mx-auto" viewBox="0 0 24 24"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+                </a></li>
+                <li><a href="#payments" class="nav-item h-16 px-6 flex items-center hover:text-white w-full" data-section="payments">
+                    <svg class="fill-current h-5 w-5 mx-auto" viewBox="0 0 24 24"><path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+                </a></li>
+                <li><a href="#reports" class="nav-item h-16 px-6 flex items-center hover:text-white w-full" data-section="reports">
+                    <svg class="fill-current h-5 w-5 mx-auto" viewBox="0 0 24 24"><path d="M5 19h-4v-4h4v4zm6 0h-4v-8h4v8zm6 0h-4v-13h4v13zm6 0h-4v-19h4v19zm1 2h-24v2h24v-2z"/></svg>
+                </a></li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <!-- Top Bar -->
+            <nav class="flex-none flex justify-between bg-white h-16 border-b">
+                <ul class="flex items-center">
+                    <li class="group relative">
+                        <button class="flex items-center h-full px-4 text-sm hover:bg-gray-50">
+                            <svg class="fill-current w-3 h-3 mx-auto" viewBox="0 0 24 24"><path d="M24 10h-10v-10h-2v10h-10v2h10v10h2v-10h10z"/></svg>
+                            <span class="ml-2">New</span>
+                        </button>
+                        <div class="absolute p-1 hidden group-hover:block z-50">
+                            <ul class="py-2 bg-white border rounded-md shadow-lg w-48">
+                                <li class="px-4 py-2 hover:bg-blue-100 cursor-pointer" id="new-customer-btn">New Customer</li>
+                                <li class="px-4 py-2 hover:bg-blue-100 cursor-pointer" id="new-meter-btn">Register Meter</li>
+                                <li class="px-4 py-2 hover:bg-blue-100 cursor-pointer" id="batch-meters-btn">Batch Generate Meters</li>
+                                <li class="px-4 py-2 hover:bg-blue-100 cursor-pointer" id="add-reading-btn">Add Reading</li>
+                            </ul>
+                        </div>
+                    </li>
+                </ul>
+                <ul class="px-8 flex items-center">
+                    <li><input type="text" id="search-input" placeholder="Search..." class="pr-8 pl-4 py-2 rounded-md border focus:outline-none focus:border-amber-500" /></li>
+                    <li class="ml-3"><button class="w-10 h-10 rounded-full bg-amber-500 text-white font-bold">A</button></li>
+                </ul>
+            </nav>
+
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="dashboard-section flex-1 overflow-auto">
+                <header class="flex h-16 bg-gray-100 border-t px-4 items-center">
+                    <h1 class="font-semibold text-lg">Dashboard Overview</h1>
+                </header>
+                <main class="p-6 space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-white border border-gray-500 rounded-lg p-4 shadow-md">
+                            <h3 class="text-sm font-medium text-gray-600">Total Customers</h3>
+                            <p class="text-3xl font-bold text-gray-900 mt-2" id="stat-customers">0</p>
+                        </div>
+                        <div class="bg-white border border-gray-500 rounded-lg p-4 shadow-md">
+                            <h3 class="text-sm font-medium text-gray-600">Active Meters</h3>
+                            <p class="text-3xl font-bold text-gray-900 mt-2" id="stat-meters">0</p>
+                        </div>
+                        <div class="bg-white border border-gray-500 rounded-lg p-4 shadow-md">
+                            <h3 class="text-sm font-medium text-gray-600">Monthly Revenue</h3>
+                            <p class="text-3xl font-bold text-gray-900 mt-2" id="stat-revenue">$0</p>
+                        </div>
+                        <div class="bg-white border border-gray-500 rounded-lg p-4 shadow-md">
+                            <h3 class="text-sm font-medium text-gray-600">Pending Payments</h3>
+                            <p class="text-3xl font-bold text-red-600 mt-2" id="stat-pending">$0</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white border rounded-lg p-4 shadow-sm">
+                            <h3 class="text-base font-semibold mb-4">Revenue Trend</h3>
+                            <canvas id="revenue-chart"></canvas>
+                        </div>
+                        <div class="bg-white border rounded-lg p-4 shadow-sm">
+                            <h3 class="text-base font-semibold mb-4">Payment Status</h3>
+                            <canvas id="payment-status-chart"></canvas>
+                        </div>
+                    </div>
+                </main>
+            </section>
+
+            <!-- Customers Section -->
+            <section id="customers" class="dashboard-section flex-1 overflow-auto hidden">
+                <header class="flex h-16 bg-gray-100 border-t px-4 items-center justify-between">
+                    <h1 class="font-semibold text-lg">Customer Management</h1>
+                    <button id="add-customer-btn" class="px-4 py-2 bg-amber-500 text-white rounded hover:bg-amber-600">Add Customer</button>
+                </header>
+                <main class="p-6">
+                    <div class="bg-white border rounded-lg shadow-sm overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Meter No</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customers-table" class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </main>
+            </section>
+
+            <!-- Meters Section -->
+            <section id="meters" class="dashboard-section flex-1 overflow-auto hidden">
+                <header class="flex h-16 bg-gray-100 border-t px-4 items-center justify-between">
+                    <h1 class="font-semibold text-lg">Meter Management</h1>
+                    <div class="flex gap-2">
+                        <button id="register-meter-btn" class="px-4 py-2 bg-amber-500 text-white rounded hover:bg-amber-600">Register Meter</button>
+                        <button id="batch-gen-btn" class="px-4 py-2 bg-slate-600 text-white rounded hover:bg-slate-700">Batch Generate</button>
+                    </div>
+                </header>
+                <main class="p-6">
+                    <div class="bg-white border rounded-lg shadow-sm overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Meter No</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Last Reading</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="meters-table" class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </main>
+            </section>
+
+            <!-- Readings Section -->
+            <section id="readings" class="dashboard-section flex-1 overflow-auto hidden">
+                <header class="flex h-16 bg-gray-100 border-t px-4 items-center justify-between">
+                    <h1 class="font-semibold text-lg">Meter Readings</h1>
+                    <button id="add-reading-main-btn" class="px-4 py-2 bg-amber-500 text-white rounded hover:bg-amber-600">Add Reading</button>
+                </header>
+                <main class="p-6">
+                    <div class="bg-white border rounded-lg shadow-sm overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Meter No</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reading</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="readings-table" class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </main>
+            </section>
+
+            <!-- Payments Section -->
+            <section id="payments" class="dashboard-section flex-1 overflow-auto hidden">
+                <header class="flex h-16 bg-gray-100 border-t px-4 items-center justify-between">
+                    <h1 class="font-semibold text-lg">Payment History</h1>
+                    <select id="payment-filter" class="border rounded px-3 py-2 text-sm">
+                        <option value="all">All Payments</option>
+                        <option value="pending">Pending</option>
+                        <option value="completed">Completed</option>
+                        <option value="defaulters">Defaulters</option>
+                    </select>
+                </header>
+                <main class="p-6">
+                    <div class="bg-white border rounded-lg shadow-sm overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Meter No</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="payments-table" class="bg-white divide-y divide-gray-200"></tbody>
+                        </table>
+                    </div>
+                </main>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reports" class="dashboard-section flex-1 overflow-auto hidden">
+                <header class="flex h-16 bg-gray-100 border-t px-4 items-center">
+                    <h1 class="font-semibold text-lg">Reports & Analytics</h1>
+                </header>
+                <main class="p-6 space-y-6">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-white border rounded-lg p-4 shadow-sm">
+                            <h3 class="text-base font-semibold mb-4">Monthly Consumption</h3>
+                            <canvas id="consumption-chart"></canvas>
+                        </div>
+                        <div class="bg-white border rounded-lg p-4 shadow-sm">
+                            <h3 class="text-base font-semibold mb-4">Defaulter Analysis</h3>
+                            <canvas id="defaulter-chart"></canvas>
+                        </div>
+                    </div>
+                </main>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- New Customer Modal -->
+    <div id="customer-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="text-lg font-semibold">Register New Customer</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="customer-form" class="modal-body">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" name="name" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" name="email" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" name="phone" class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Meter Number *</label>
+                    <input type="text" name="meter_no" required class="form-input">
+                </div>
+                <div class="alert-info">
+                    Password will be auto-generated and sent to customer's email
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary close-modal">Cancel</button>
+                <button type="submit" form="customer-form" class="btn-primary">Register Customer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Reading Modal -->
+    <div id="reading-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="text-lg font-semibold">Add Meter Reading</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="reading-form" class="modal-body">
+                <div class="form-group">
+                    <label>Meter Number *</label>
+                    <input type="text" name="meter_no" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Reading Value *</label>
+                    <input type="number" name="reading" required class="form-input">
+                </div>
+                <div class="form-group">
+                    <label>Period *</label>
+                    <input type="month" name="period" required class="form-input">
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary close-modal">Cancel</button>
+                <button type="submit" form="reading-form" class="btn-primary">Add Reading</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Generate Modal -->
+    <div id="batch-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="text-lg font-semibold">Batch Generate Meters</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="batch-form" class="modal-body">
+                <div class="form-group">
+                    <label>Number of Meters *</label>
+                    <input type="number" name="count" required min="1" max="100" class="form-input">
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary close-modal">Cancel</button>
+                <button type="submit" form="batch-form" class="btn-primary">Generate Meters</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../static/js/company-portal.js"></script>
+</body>
+</html>
