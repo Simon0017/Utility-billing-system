@@ -20,7 +20,7 @@ tracing-subscriber = {version = "0.3.20",features = ["fmt","env-filter"]}
 tracing = "0.1.41"
 # middleware
 tower = { version = "0.5.1", features = ["full"] }
-tower-http = {version = "0.6.6",features = ["cors","trace","compression-full","auth"]}
+tower-http = {version = "0.6.6",features = ["cors","trace","compression-full","auth","fs"]}
 # template handling with tera
 tera = "1.20.0"
 once_cell = "1.21.3" # make tera global

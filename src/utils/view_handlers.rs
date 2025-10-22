@@ -1,6 +1,5 @@
 use axum::response::Html;
-use tera::{Context};
-
+use tera::{Context,Tera};
 use crate::TEMPLATES;
 
 pub async fn root() ->&'static str {
@@ -8,9 +7,10 @@ pub async fn root() ->&'static str {
 }
 
 pub async  fn company() ->Html<String> {
+    // let tera = Tera::new("src/templates/**/*.html").unwrap();
     let mut ctx = Context::new();
     ctx.insert("name", "Hephaestus Motor Inc");
 
-    let rendered = TEMPLATES.render("pages/company_portal.html", &ctx).unwrap();
+    let rendered = TEMPLATES.render("company_portal.html", &ctx).unwrap();
     Html(rendered)
 }

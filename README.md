@@ -9,7 +9,7 @@ Powered by **Axum**, **Tera**, and **SeaORM**, the system provides smart meterin
 
 ## 🏢 Company Information
 
-**Company:** Hephaestus Motors Inc.  
+**Virtual Company:** Hephaestus Motors Inc.  
 **Department:** Embedded Systems & Smart Automation  
 **Project Lead:** Simon Wekesa  
 **Tech Stack:** Rust · Axum · SeaORM · Tera · PostgreSQL  

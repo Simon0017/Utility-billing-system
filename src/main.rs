@@ -12,13 +12,15 @@ use axum::{
     http::StatusCode
 };
 use utils::view_handlers::{root,company};
-use tera::{Tera,Context};
+use tera::{Tera};
 use once_cell::sync::Lazy;
+use tower_http::services::ServeDir;
+use std::path::PathBuf;
 
 
 // make templates lazy and global
 pub static TEMPLATES:Lazy<Tera>= Lazy::new(||{
-                        match Tera::new("templates/**/*") {
+                        match Tera::new("src/templates/**/*.html") {
                             Ok(t) =>t,
                             Err(e) =>{
                                 eprintln!("Template Parsing Error: {e}");
@@ -27,6 +29,8 @@ pub static TEMPLATES:Lazy<Tera>= Lazy::new(||{
                         }
                     }                    
                 );
+
+// serve static files
 
 #[tokio::main]
 async  fn main()->Result<(),DbErr> {
@@ -47,11 +51,20 @@ async  fn main()->Result<(),DbErr> {
                         .allow_origin(Any)
                         .allow_methods(Any)
                         .allow_headers(Any);
+
+    // +++++++++++++++++++++++++=DEFINING THE STATIC RENDERING+++++++++++++++++++++++
+    // Absolute path to staic dir
+    let static_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/static");
+
+    // Serve static files at /static/*
+    let static_service = ServeDir::new(static_dir);
+
     
     // ++++++++++++++++++++++++++++++++++DEFINE ROUTES++++++++++++++++++++++++++++++
     let app = Router::new()
                                 .route("/", get(root))
                                 .route("/company-portal", get(company))
+                                .nest_service("/static", static_service)
                                 .layer(cors)
                                 .layer(TraceLayer::new_for_http()) ;
 
