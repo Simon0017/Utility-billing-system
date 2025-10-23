@@ -16,6 +16,7 @@ use tera::{Tera};
 use once_cell::sync::Lazy;
 use tower_http::services::ServeDir;
 use std::path::PathBuf;
+use tracing_subscriber;
 
 
 // make templates lazy and global
@@ -44,7 +45,7 @@ async  fn main()->Result<(),DbErr> {
     let db = Database::connect(&db_url).await?;
 
     // ++++++++++++++++++++++++LOGGING SETUP+++++++++++++++++++++++++
-
+    tracing_subscriber::fmt().with_env_filter("info").init();
 
     // =======SETTING UP THE MIDDLEWARE=========================================
     let cors = CorsLayer::new()
