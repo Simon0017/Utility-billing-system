@@ -1,4 +1,4 @@
-use crate::entities::{meters, prelude::*};
+use crate::entities::{meters,customers};
 use sea_orm::{DatabaseConnection, EntityTrait, QueryOrder};
 use sea_orm::DbErr;
 
@@ -19,3 +19,25 @@ pub async fn gen_meter_no(db: &DatabaseConnection) -> Result<String, DbErr> {
 
     Ok(new_meter_no)
 }
+
+pub async fn gen_customer_no(db: &DatabaseConnection) -> Result<String,DbErr>{
+    // retrieve the last customer no
+    let last_customer = customers::Entity::find()
+        .order_by_desc(customers::Column::Id)
+        .one(db)
+        .await?;
+
+    let new_customer_id = if let Some(customer) = last_customer {
+        let last_id = customer.id.trim_start_matches("CUS-HMI-");
+        let next_no = last_id.parse::<u32>().unwrap_or(0) +1;
+        format!("CUS-HMI-{:03}",next_no)
+    }else{
+        "CUS-HMI-001".to_string()
+    };
+
+    Ok(new_customer_id)
+}
+
+// pub fn gen_password_automaticaly() ->Result<String,&str> {
+//     format!("")
+// }

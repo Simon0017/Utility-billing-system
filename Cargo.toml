@@ -24,3 +24,5 @@ tower-http = {version = "0.6.6",features = ["cors","trace","compression-full","a
 # template handling with tera
 tera = "1.20.0"
 once_cell = "1.21.3" # make tera global
+# chrono for time
+chrono = { version = "0.4.42", features = ["serde"] }

@@ -8,15 +8,16 @@ use tower_http::cors::{CorsLayer,Any};
 use tower_http::trace::{TraceLayer};
 use axum::{
     routing::{post,get},
-    Router,Json,
-    http::StatusCode
+    Router,
+    extract::Extension
 };
-use utils::view_handlers::{root,company};
+use utils::view_handlers::{root,company,register_meter,load_meters,register_cutomer};
 use tera::{Tera};
 use once_cell::sync::Lazy;
 use tower_http::services::ServeDir;
 use std::path::PathBuf;
 use tracing_subscriber;
+use std::sync::Arc;
 
 
 // make templates lazy and global
@@ -43,6 +44,7 @@ async  fn main()->Result<(),DbErr> {
     let db_url = env::var("DATABASE_URL").expect("Database url must be in the .env file");
 
     let db = Database::connect(&db_url).await?;
+    let db = Arc::new(db); //shared ownership
 
     // ++++++++++++++++++++++++LOGGING SETUP+++++++++++++++++++++++++
     tracing_subscriber::fmt().with_env_filter("info").init();
@@ -65,9 +67,13 @@ async  fn main()->Result<(),DbErr> {
     let app = Router::new()
                                 .route("/", get(root))
                                 .route("/company-portal", get(company))
+                                .route("/api/meters/register/", post(register_meter))
+                                .route("/api/meters/", get(load_meters))
+                                .route("/api/customers/", post(register_cutomer))
+                                .layer(Extension(db))
                                 .nest_service("/static", static_service)
                                 .layer(cors)
-                                .layer(TraceLayer::new_for_http()) ;
+                                .layer(TraceLayer::new_for_http()) ; //for logging
 
 
     // +++++++++++++++++++++++++SERVER SETUP+++++++++++++++++++++++++++++++++++++++++++

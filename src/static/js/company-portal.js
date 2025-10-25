@@ -185,9 +185,9 @@ async function loadMeters() {
         const meters = await res.json();
         
         const tbody = document.getElementById('meters-table');
-        tbody.innerHTML = meters.map(m => `
+        tbody.innerHTML = meters.meters.map(m => `
             <tr>
-                <td class="px-6 py-4">${m.meter_no}</td>
+                <td class="px-6 py-4">${m.id}</td>
                 <td class="px-6 py-4">${m.customer_name || 'Unassigned'}</td>
                 <td class="px-6 py-4"><span class="status-badge ${m.status}">${m.status}</span></td>
                 <td class="px-6 py-4">${m.last_reading || 'N/A'}</td>
@@ -349,4 +349,4 @@ async function viewMeterHistory(meterNo) {
 }
 
 // Initialize
-// loadDashboard();
+loadDashboard();
