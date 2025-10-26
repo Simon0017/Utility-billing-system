@@ -11,7 +11,8 @@ use axum::{
     Router,
     extract::Extension
 };
-use utils::view_handlers::{root,company,register_meter,load_meters,register_cutomer};
+use utils::view_handlers::{root,company,register_meter,load_meters,register_cutomer,add_reading,generate_batch_meter,
+                            load_dashboard,load_customers};
 use tera::{Tera};
 use once_cell::sync::Lazy;
 use tower_http::services::ServeDir;
@@ -70,6 +71,10 @@ async  fn main()->Result<(),DbErr> {
                                 .route("/api/meters/register/", post(register_meter))
                                 .route("/api/meters/", get(load_meters))
                                 .route("/api/customers/", post(register_cutomer))
+                                .route("/api/readings/", post(add_reading))
+                                .route("/api/meters/batch/", post(generate_batch_meter))
+                                .route("/api/dashboard/stats/", get(load_dashboard))
+                                .route("/api/customers/", get(load_customers))
                                 .layer(Extension(db))
                                 .nest_service("/static", static_service)
                                 .layer(cors)

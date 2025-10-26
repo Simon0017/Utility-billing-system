@@ -146,8 +146,8 @@ async function loadDashboard() {
         
         document.getElementById('stat-customers').textContent = data.total_customers;
         document.getElementById('stat-meters').textContent = data.active_meters;
-        document.getElementById('stat-revenue').textContent = '$' + data.monthly_revenue.toLocaleString();
-        document.getElementById('stat-pending').textContent = '$' + data.pending_payments.toLocaleString();
+        document.getElementById('stat-revenue').textContent = 'Ksh' + data.monthly_revenue.toLocaleString();
+        document.getElementById('stat-pending').textContent = 'Ksh' + data.pending_payments.toLocaleString();
         
         renderRevenueChart(data.revenue_trend);
         renderPaymentStatusChart(data.payment_status);
@@ -156,13 +156,15 @@ async function loadDashboard() {
     }
 }
 
-async function loadCustomers() {
+async function loadCustomers() {    
     try {
         const res = await fetch(`${API_BASE}/customers/`);
         const customers = await res.json();
+        console.log(customers);
+        
         
         const tbody = document.getElementById('customers-table');
-        tbody.innerHTML = customers.map(c => `
+        tbody.innerHTML = customers.data.map(c => `
             <tr>
                 <td class="px-6 py-4">${c.id}</td>
                 <td class="px-6 py-4">${c.name}</td>
