@@ -570,7 +570,7 @@ pub async fn search_meters(Extension(db): Extension<Arc<DatabaseConnection>>,Pat
         .await
         .unwrap();
 
-    let latest_payment: Decimal = last_payment_model.and_then(|l|Some(l.amount)).unwrap();
+    let latest_payment: Decimal = last_payment_model.and_then(|l|Some(l.amount)).unwrap_or(Decimal::ZERO);
 
     // latest_reading
     let last_reading_model = Readings::find()

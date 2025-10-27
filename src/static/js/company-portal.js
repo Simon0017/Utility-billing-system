@@ -79,6 +79,10 @@ document.getElementById('reading-form').addEventListener('submit', async (e) => 
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData);
+
+    if (data.reading) {
+        data.reading = parseInt(data.reading,10)
+    }
     
     try {
         await fetch(`${API_BASE}/add_readings/`, {

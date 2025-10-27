@@ -21,7 +21,7 @@ async function searchMeter() {
         
         const data = await res.json();
         currentMeterNo = meterNo;
-        currentBalance = data.balance;
+        currentBalance = Number(data.balance || 0);
         
         displayResults(data);
     } catch (err) {
@@ -35,8 +35,8 @@ function displayResults(data) {
     document.getElementById('results').classList.remove('hidden');
     
     // Account summary
-    document.getElementById('balance').textContent = '$' + data.balance.toFixed(2);
-    document.getElementById('last-payment').textContent = '$' + (data.last_payment || 0).toFixed(2);
+    document.getElementById('balance').textContent = '$' + Number(data.balance || 0).toFixed(2);
+    document.getElementById('last-payment').textContent = '$' + Number(data.last_payment || 0).toFixed(2);
     document.getElementById('latest-reading').textContent = data.latest_reading + ' kWh';
     
     // Latest invoice
