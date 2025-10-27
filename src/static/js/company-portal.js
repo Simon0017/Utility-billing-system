@@ -81,7 +81,7 @@ document.getElementById('reading-form').addEventListener('submit', async (e) => 
     const data = Object.fromEntries(formData);
     
     try {
-        await fetch(`${API_BASE}/readings/`, {
+        await fetch(`${API_BASE}/add_readings/`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data)
@@ -198,6 +198,7 @@ async function loadMeters() {
                 </td>
             </tr>
         `).join('');
+        
     } catch (err) {
         console.error('Error loading meters:', err);
     }
@@ -209,18 +210,27 @@ async function loadReadings() {
         const readings = await res.json();
         
         const tbody = document.getElementById('readings-table');
-        tbody.innerHTML = readings.map(r => `
+        tbody.innerHTML = readings.data.map(r => `
             <tr>
                 <td class="px-6 py-4">${r.meter_no}</td>
                 <td class="px-6 py-4">${r.reading}</td>
                 <td class="px-6 py-4">${r.period}</td>
-                <td class="px-6 py-4">${r.amount}</td>
+                <td class="px-6 py-4 ">${r.amount}</td>
                 <td class="px-6 py-4">${new Date(r.date).toLocaleDateString()}</td>
                 <td class="px-6 py-4 text-right">
-                    <button class="text-blue-600 hover:underline" onclick="generateInvoice(${r.id})">Invoice</button>
+                    <button class="text-blue-600 hover:underline readings-btn"  data-amount="${r.amount}"  data-meter_no = "${r.meter_no}">Invoice</button>
                 </td>
             </tr>
         `).join('');
+
+        document.querySelectorAll(".readings-btn").forEach(reading =>{
+            const amount = reading.getAttribute("data-amount").trim();
+            const meter_no = reading.getAttribute("data-meter_no").trim();
+            reading.addEventListener("click",(e)=>{
+                e.preventDefault();
+                generateInvoice(meter_no,amount)
+            })
+        })
     } catch (err) {
         console.error('Error loading readings:', err);
     }
@@ -329,9 +339,13 @@ function renderDefaulterChart(data) {
 }
 
 // Utility functions
-async function generateInvoice(readingId) {
+async function generateInvoice(readingId,amount) {
     try {
-        const res = await fetch(`${API_BASE}/invoices/generate/${readingId}/`, {method: 'POST'});
+        const res = await fetch(`${API_BASE}/invoices/generate/${readingId}/`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({amount:amount})
+        });
         const invoice = await res.json();
         alert('Invoice generated: #' + invoice.invoice_no);
     } catch (err) {

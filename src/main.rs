@@ -11,8 +11,8 @@ use axum::{
     Router,
     extract::Extension
 };
-use utils::view_handlers::{root,company,register_meter,load_meters,register_cutomer,add_reading,generate_batch_meter,
-                            load_dashboard,load_customers};
+use utils::view_handlers::{root,company,customer,register_meter,load_meters,register_cutomer,add_reading,generate_batch_meter,
+                            load_dashboard,load_customers,load_payments,load_readings,gen_invoice,search_meters};
 use tera::{Tera};
 use once_cell::sync::Lazy;
 use tower_http::services::ServeDir;
@@ -66,19 +66,24 @@ async  fn main()->Result<(),DbErr> {
     
     // ++++++++++++++++++++++++++++++++++DEFINE ROUTES++++++++++++++++++++++++++++++
     let app = Router::new()
-                                .route("/", get(root))
-                                .route("/company-portal", get(company))
-                                .route("/api/meters/register/", post(register_meter))
-                                .route("/api/meters/", get(load_meters))
-                                .route("/api/customers/", post(register_cutomer))
-                                .route("/api/readings/", post(add_reading))
-                                .route("/api/meters/batch/", post(generate_batch_meter))
-                                .route("/api/dashboard/stats/", get(load_dashboard))
-                                .route("/api/customers/", get(load_customers))
-                                .layer(Extension(db))
-                                .nest_service("/static", static_service)
-                                .layer(cors)
-                                .layer(TraceLayer::new_for_http()) ; //for logging
+                .route("/", get(root))
+                .route("/company-portal", get(company))
+                .route("/customer-portal", get(customer))
+                .route("/api/meters/register/", post(register_meter))
+                .route("/api/meters/", get(load_meters))
+                .route("/api/customers/", post(register_cutomer))
+                .route("/api/add_readings/", post(add_reading))
+                .route("/api/meters/batch/", post(generate_batch_meter))
+                .route("/api/dashboard/stats/", get(load_dashboard))
+                .route("/api/customers/", get(load_customers))
+                .route("/api/readings/", get(load_readings))
+                .route("/api/payments/", get(load_payments))
+                .route("/api/invoices/generate/{reading_id}/", post(gen_invoice))
+                .route("/api/customer/meter/{meter_no}/", get(search_meters))
+                .layer(Extension(db))
+                .nest_service("/static", static_service)
+                .layer(cors)
+                .layer(TraceLayer::new_for_http()) ; //for logging
 
 
     // +++++++++++++++++++++++++SERVER SETUP+++++++++++++++++++++++++++++++++++++++++++

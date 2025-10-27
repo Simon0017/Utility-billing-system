@@ -3094,6 +3094,7 @@ dependencies = [
  "chrono",
  "dotenvy",
  "once_cell",
+ "rust_decimal",
  "sea-orm",
  "serde",
  "serde_json",
