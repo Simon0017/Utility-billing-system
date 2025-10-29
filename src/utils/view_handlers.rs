@@ -1,7 +1,7 @@
 use std::{str, sync::Arc, u32};
 
 use axum::{response::Html,extract::{Query,Path}};
-use sea_orm::{sea_query::{Expr}, ActiveModelTrait, ActiveValue::{NotSet, Set}, ColumnTrait, DatabaseConnection, EntityTrait, ExprTrait, QueryFilter, QueryOrder};
+use sea_orm::{sea_query::Expr, ActiveModelTrait, ActiveValue::{NotSet, Set}, ColumnTrait, DatabaseConnection, EntityTrait, ExprTrait, QueryFilter, QueryOrder};
 use serde::{Deserialize, Serialize};
 use tera::{Context};
 use crate::{entities::{customers, invoices, meters, payments, readings}, utils::helper_functions::{calculate_invoice_amount, gen_customer_no, gen_invoice_no, gen_meter_no, generate_payment_id, RATE_PER_UNIT, SERVICE_CHARGE}, TEMPLATES};
@@ -22,6 +22,7 @@ struct CustomerDashboard{
     name:String,
     email:Option<String>,
     meter_no:Option<String>,
+    balance:Decimal
     
 }
 
@@ -58,6 +59,25 @@ pub struct ReadingHistory {
 pub struct TrendsData{
     labels:Vec<String>,
     values:Vec<Decimal>
+}
+
+#[derive(Serialize,Deserialize)]
+struct MeterData {
+    id: String,
+    customer_name: Option<String>,
+    status: String,
+    last_reading: i32, 
+    meter_no: String,
+}
+
+#[derive(Serialize,Deserialize)]
+struct PaymentData {
+    customer_name: Option<String>,
+    amount: Decimal,        
+    status: String,
+    date: chrono::NaiveDateTime,  
+    id: String,
+    meter_no: String,
 }
 
 
@@ -163,18 +183,33 @@ pub async fn load_meters(Extension(db): Extension<Arc<DatabaseConnection>>) ->im
         .await.
         unwrap();
     
-    let data: Vec<_> = meters
-        .into_iter()
-        .map(|(meter, customer)| {
-            json!({
-                "id": meter.id,
-                "customer_name": customer.as_ref().map(|c| &c.name),
-                "status": "Active",           // temporary placeholder
-                "last_reading": 4,            // placeholder
-                "meter_no": meter.id
-            })
-        })
-        .collect();
+    let mut data: Vec<MeterData> = Vec::new();
+    
+    for (meter, customer) in meters {
+        // Determine status
+        let status = match customer {
+            Some(_) => "Active".to_string(),
+            None => "Inactive".to_string(),
+        };
+
+        // Fetch the last reading (await works fine here)
+        let last_reading = Readings::find()
+            .order_by_desc(readings::Column::Timestamp)
+            .filter(readings::Column::MeterId.contains(meter.id.clone()))
+            .one(&*db)
+            .await
+            .unwrap();
+        let last_reading_units = last_reading.clone().and_then(|r| Some(r.units)).unwrap_or(0);
+
+        // Push structured data
+        data.push(MeterData {
+            id: meter.id.clone(),
+            customer_name: customer.as_ref().map(|c| c.name.clone()),
+            status,
+            last_reading: last_reading_units,
+            meter_no: meter.id.clone(),
+        });
+    }
     
     let response = json!({
         "message":format!("Loaded meters"),
@@ -314,11 +349,33 @@ pub async fn load_customers(Extension(db): Extension<Arc<DatabaseConnection>>) -
     let mut customers_response = vec![];
 
     for (customer, meter) in customers {
+        // get the balance
+        let invoices_payments = Invoices::find()
+            .find_also_related(payments::Entity)
+            .filter(invoices::Column::CustomerId.contains(customer.id.clone()))
+            .all(&*db)
+            .await
+            .unwrap();
+
+        let balance:Decimal = invoices_payments.into_iter().map(|(invoice,payment)|{
+        match payment {
+                // case 1: payment exists → use its balance or default to 0
+                Some(pay) => pay
+                    .bal_amount
+                    .unwrap_or(Decimal::ZERO),
+
+                // case 2: no payment → use the invoice amount
+                None => invoice.amount
+            }
+        })
+        .sum();
+
         customers_response.push(CustomerDashboard {
             id: customer.id,
             name: customer.name,
             email: customer.email,
-            meter_no: meter.map(|m| m.id), // ✅ safely extract from Option<meter::Model>
+            meter_no: meter.map(|m| m.id),
+            balance:balance
         });
     }
 
@@ -376,16 +433,38 @@ pub async fn load_payments(Extension(db): Extension<Arc<DatabaseConnection>>,Que
                 .await
                 .unwrap();
 
-            let data:Vec<_> = payments.into_iter().map(|(payment,customer)|{
-                json!({
-                    "customer_name":customer.as_ref().map(|c|&c.name),
-                    "amount":payment.amount,
-                    "status":"All".to_string(),
-                    "date":payment.created_at,
-                    "id":payment.id
-                })
-            }).collect();
+            let mut data: Vec<PaymentData> = Vec::new();
 
+            for (payment, customer) in payments {
+                // Get customer_id
+                let customers_id = customer
+                    .as_ref()
+                    .map(|c| c.id.clone())
+                    .unwrap_or("Unknown".to_string());
+
+                // Fetch meter linked to  customer
+                let meter = Meters::find()
+                    .filter(meters::Column::CustomerId.contains(customers_id.clone()))
+                    .one(&*db)
+                    .await
+                    .unwrap();
+
+                // Extract meter_no
+                let meter_no = meter
+                    .as_ref()
+                    .map(|m| m.id.clone())
+                    .unwrap_or("Unknown".to_string());
+
+                // Push 
+                data.push(PaymentData {
+                    customer_name: customer.as_ref().map(|c| c.name.clone()),
+                    amount: payment.amount,
+                    status: "All".to_string(),
+                    date: payment.created_at,
+                    id: payment.id,
+                    meter_no,
+                });
+            }
             data
         },
         "pending" => {
@@ -397,16 +476,38 @@ pub async fn load_payments(Extension(db): Extension<Arc<DatabaseConnection>>,Que
             .await
             .unwrap();
 
-            let data:Vec<_> = payments.into_iter().map(|(payment,customer)|{
-                json!({
-                    "customer_name":customer.as_ref().map(|c|&c.name),
-                    "amount":payment.amount,
-                    "status":"Pending".to_string(),
-                    "date":payment.created_at,
-                    "id":payment.id
-                })
-            }).collect();
+            let mut data: Vec<PaymentData> = Vec::new();
 
+            for (payment, customer) in payments {
+                // Get customer_id
+                let customers_id = customer
+                    .as_ref()
+                    .map(|c| c.id.clone())
+                    .unwrap_or("Unknown".to_string());
+
+                // Fetch meter linked to  customer
+                let meter = Meters::find()
+                    .filter(meters::Column::CustomerId.contains(customers_id.clone()))
+                    .one(&*db)
+                    .await
+                    .unwrap();
+
+                // Extract meter_no
+                let meter_no = meter
+                    .as_ref()
+                    .map(|m| m.id.clone())
+                    .unwrap_or("Unknown".to_string());
+
+                // Push 
+                data.push(PaymentData {
+                    customer_name: customer.as_ref().map(|c| c.name.clone()),
+                    amount: payment.amount,
+                    status: "Pending".to_string(),
+                    date: payment.created_at,
+                    id: payment.id,
+                    meter_no,
+                });
+            }
             data
 
         },
@@ -419,16 +520,38 @@ pub async fn load_payments(Extension(db): Extension<Arc<DatabaseConnection>>,Que
             .await
             .unwrap();
 
-            let data:Vec<_> = payments.into_iter().map(|(payment,customer)|{
-                json!({
-                    "customer_name":customer.as_ref().map(|c|&c.name),
-                    "amount":payment.amount,
-                    "status":"Completed".to_string(),
-                    "date":payment.created_at,
-                    "id":payment.id
-                })
-            }).collect();
+            let mut data: Vec<PaymentData> = Vec::new();
 
+            for (payment, customer) in payments {
+                // Get customer_id
+                let customers_id = customer
+                    .as_ref()
+                    .map(|c| c.id.clone())
+                    .unwrap_or("Unknown".to_string());
+
+                // Fetch meter linked to  customer
+                let meter = Meters::find()
+                    .filter(meters::Column::CustomerId.contains(customers_id.clone()))
+                    .one(&*db)
+                    .await
+                    .unwrap();
+
+                // Extract meter_no
+                let meter_no = meter
+                    .as_ref()
+                    .map(|m| m.id.clone())
+                    .unwrap_or("Unknown".to_string());
+
+                // Push 
+                data.push(PaymentData {
+                    customer_name: customer.as_ref().map(|c| c.name.clone()),
+                    amount: payment.amount,
+                    status: "Completed".to_string(),
+                    date: payment.created_at,
+                    id: payment.id,
+                    meter_no,
+                });
+            }
             data
         },
         "defaulters" => {
@@ -453,16 +576,38 @@ pub async fn load_payments(Extension(db): Extension<Arc<DatabaseConnection>>,Que
             .await
             .unwrap();
 
-            let data:Vec<_> = payments.into_iter().map(|(payment,customer)|{
-                json!({
-                    "customer_name":customer.as_ref().map(|c|&c.name),
-                    "amount":payment.amount,
-                    "status":"Defaulted".to_string(),
-                    "date":payment.created_at,
-                    "id":payment.id
-                })
-            }).collect();
+            let mut data: Vec<PaymentData> = Vec::new();
 
+            for (payment, customer) in payments {
+                // Get customer_id
+                let customers_id = customer
+                    .as_ref()
+                    .map(|c| c.id.clone())
+                    .unwrap_or("Unknown".to_string());
+
+                // Fetch meter linked to  customer
+                let meter = Meters::find()
+                    .filter(meters::Column::CustomerId.contains(customers_id.clone()))
+                    .one(&*db)
+                    .await
+                    .unwrap();
+
+                // Extract meter_no
+                let meter_no = meter
+                    .as_ref()
+                    .map(|m| m.id.clone())
+                    .unwrap_or("Unknown".to_string());
+
+                // Push 
+                data.push(PaymentData {
+                    customer_name: customer.as_ref().map(|c| c.name.clone()),
+                    amount: payment.amount,
+                    status: "Defaulters".to_string(),
+                    date: payment.created_at,
+                    id: payment.id,
+                    meter_no,
+                });
+            }
             data
         },
         _ => {
@@ -471,16 +616,39 @@ pub async fn load_payments(Extension(db): Extension<Arc<DatabaseConnection>>,Que
                 .all(&*db)
                 .await
                 .unwrap();
-            let data:Vec<_> = payments.into_iter().map(|(payment,customer)|{
-                json!({
-                    "customer_name":customer.as_ref().map(|c|&c.name),
-                    "amount":payment.amount,
-                    "status":"All".to_string(),
-                    "date":payment.created_at,
-                    "id":payment.id
-                })
-            }).collect();
+            
+            let mut data: Vec<PaymentData> = Vec::new();
 
+            for (payment, customer) in payments {
+                // Get customer_id
+                let customers_id = customer
+                    .as_ref()
+                    .map(|c| c.id.clone())
+                    .unwrap_or("Unknown".to_string());
+
+                // Fetch meter linked to  customer
+                let meter = Meters::find()
+                    .filter(meters::Column::CustomerId.contains(customers_id.clone()))
+                    .one(&*db)
+                    .await
+                    .unwrap();
+
+                // Extract meter_no
+                let meter_no = meter
+                    .as_ref()
+                    .map(|m| m.id.clone())
+                    .unwrap_or("Unknown".to_string());
+
+                // Push 
+                data.push(PaymentData {
+                    customer_name: customer.as_ref().map(|c| c.name.clone()),
+                    amount: payment.amount,
+                    status: "All".to_string(),
+                    date: payment.created_at,
+                    id: payment.id,
+                    meter_no,
+                });
+            }
             data
         },
     };

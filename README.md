@@ -2,7 +2,7 @@
 
 > **"Precision, Power, and Performance in Every Watt."**
 
-A modern, high-performance **utility billing and monitoring platform** built in **Rust**, designed for speed, scalability, and real-time IoT integration.  
+A modern, high-performance **utility billing and monitoring platform** built in **Rust**, designed for speed, scalability, real-world applications.  
 Powered by **Axum**, **Tera**, and **SeaORM**, the system provides smart metering, billing automation.
 
 ---
@@ -10,7 +10,7 @@ Powered by **Axum**, **Tera**, and **SeaORM**, the system provides smart meterin
 ## 🏢 Virtual Company Information
 
 **Virtual Company:** Hephaestus Motors Inc.  
-**Department:** Embedded Systems & Smart Automation  
+**Department:** IT and Innovations <br>
 **Project Lead:** Simon Wekesa  
 **Tech Stack:** Rust · Axum · SeaORM · Tera · PostgreSQL<br> 
 **About:** Hephaestus MotorInc is a electricity supply company with 5M+ customers. This digital billing system is aimed to easen up the payment process of the customers plus they have access to their payment and meter history. 
@@ -22,9 +22,9 @@ Powered by **Axum**, **Tera**, and **SeaORM**, the system provides smart meterin
 The **Hephaestus Utility Billing System** is a backend service for managing and visualizing power consumption data collected from  meters.
 
 It is designed for:
--  Utility providers (electric, water, or gas)
-- Industrial environments
-- Research and automation systems
+-  Utility providers (electric)
+-  Rust backend developers (Axum)
+-  Learners
 
 
 ---
@@ -36,7 +36,6 @@ It is designed for:
 | **Automated Billing Engine** | Compute billing from usage data with defined tariffs |
 |  **Invoice Management** | Generate and store bills with timestamps and totals |
 | **Usage Analytics** | Tera-powered dashboard for consumption visualization |
-| **Smart Alerts** | Detect anomalies or overuse events |
 | **Modular Architecture** | Clean separation between routes, services, and models |
 
 ---
@@ -60,8 +59,32 @@ It is designed for:
 
 ---
 
-## 📂 Project Structure
+## 📷 Screenshots
 
+### Desktop Screens
+<!-- Desktop Screens -->
+<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+  <img src="assets/dashboard.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
+  <img src="assets/meters.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
+  <img src="assets/payment.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
+  <img src="assets/readings.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
+  <img src="assets/dashboard.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
+</div>
+
+<br>
+
+### Mobile Screens
+<!-- Mobile Screens -->
+<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+  <img src="assets/mobile_1.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
+  <img src="assets\customer.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
+  <img src="assets/reading.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
+  <img src="assets/mobile_2.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
+  <img src="assets/mobile_3.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
+  <img src="assets/mobile_4.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
+  <img src="assets/mobile_5.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
+  <img src="assets/mobile_6.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
+</div>
 
 ---
 

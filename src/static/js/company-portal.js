@@ -1,4 +1,5 @@
 const API_BASE = '/api';
+let meters_list = [];
 
 // Navigation
 document.querySelectorAll('.nav-item').forEach(item => {
@@ -189,6 +190,7 @@ async function loadMeters() {
     try {
         const res = await fetch(`${API_BASE}/meters/`);
         const meters = await res.json();
+        meters_list = [...meters_list,...meters.meters]
         
         const tbody = document.getElementById('meters-table');
         tbody.innerHTML = meters.meters.map(m => `
@@ -217,9 +219,9 @@ async function loadReadings() {
         tbody.innerHTML = readings.data.map(r => `
             <tr>
                 <td class="px-6 py-4">${r.meter_no}</td>
-                <td class="px-6 py-4">${r.reading}</td>
+                <td class="px-6 py-4">${r.reading} Units</td>
                 <td class="px-6 py-4">${r.period}</td>
-                <td class="px-6 py-4 ">${r.amount}</td>
+                <td class="px-6 py-4 ">$${r.amount}</td>
                 <td class="px-6 py-4">${new Date(r.date).toLocaleDateString()}</td>
                 <td class="px-6 py-4 text-right">
                     <button class="text-blue-600 hover:underline readings-btn"  data-amount="${r.amount}"  data-meter_no = "${r.meter_no}">Invoice</button>
@@ -228,7 +230,7 @@ async function loadReadings() {
         `).join('');
 
         document.querySelectorAll(".readings-btn").forEach(reading =>{
-            const amount = reading.getAttribute("data-amount").trim();
+            const amount = Number(reading.getAttribute("data-amount").trim() || 0);
             const meter_no = reading.getAttribute("data-meter_no").trim();
             reading.addEventListener("click",(e)=>{
                 e.preventDefault();
@@ -368,5 +370,35 @@ async function viewMeterHistory(meterNo) {
     }
 }
 
+function pop_meter_numbers() {
+    let UnassignedMeters = meters_list.filter(meter => !meter.customer_name );
+    let assignedMeters = meters_list.filter(meter =>meter.customer_name);
+
+    let meters_rendered = [];
+    if (UnassignedMeters.length > 5) {
+        meters_rendered = [...UnassignedMeters.slice(0,4)];
+    } else {
+        meters_rendered = UnassignedMeters;
+    }
+
+    document.querySelectorAll(".meter_no").forEach(opt =>{
+        opt.innerHTML = meters_rendered.map(meter =>`
+            <option value="${meter.meter_no}">${meter.meter_no}</option>
+            `).join('');
+
+    });
+
+    document.querySelectorAll(".meter_no_reading").forEach(opt =>{
+        opt.innerHTML = assignedMeters.map(meter =>`
+            <option value="${meter.meter_no}">${meter.meter_no}</option>
+            `).join('');
+
+    });
+}
+
 // Initialize
-loadDashboard();
+document.addEventListener("DOMContentLoaded",async (event) => {
+    await loadDashboard();
+    await loadMeters();
+    pop_meter_numbers();
+})
