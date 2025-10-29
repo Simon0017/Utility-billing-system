@@ -65,7 +65,6 @@ It is designed for:
 <!-- Desktop Screens -->
 <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
   <img src="assets/dashboard.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
-  <img src="assets/meters.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
   <img src="assets/payment.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
   <img src="assets/readings.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
   <img src="assets/dashboard.png" alt="Screenshot" style="width: 100%; border-radius: 8px;">
