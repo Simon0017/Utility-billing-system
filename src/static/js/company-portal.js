@@ -102,7 +102,7 @@ document.getElementById('reading-form').addEventListener('submit', async (e) => 
 document.getElementById('batch-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const count = formData.get('count');
+    const count = parseInt(formData.get('count'),10);
     
     try {
         const res = await fetch(`${API_BASE}/meters/batch/`, {

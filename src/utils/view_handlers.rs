@@ -1,20 +1,19 @@
-use std::{sync::Arc, u32};
+use std::{str, sync::Arc, u32};
 
 use axum::{response::Html,extract::{Query,Path}};
-use sea_orm::{sea_query::Expr, ActiveModelTrait, ActiveValue::{NotSet, Set}, ColumnTrait, DatabaseConnection, EntityTrait, ExprTrait, QueryFilter, QueryOrder};
+use sea_orm::{sea_query::{Expr}, ActiveModelTrait, ActiveValue::{NotSet, Set}, ColumnTrait, DatabaseConnection, EntityTrait, ExprTrait, QueryFilter, QueryOrder};
 use serde::{Deserialize, Serialize};
 use tera::{Context};
-use crate::{entities::{customers, invoices, meters, payments, readings}, utils::helper_functions::{gen_customer_no, gen_meter_no,gen_invoice_no}, TEMPLATES};
+use crate::{entities::{customers, invoices, meters, payments, readings}, utils::helper_functions::{calculate_invoice_amount, gen_customer_no, gen_invoice_no, gen_meter_no, generate_payment_id, RATE_PER_UNIT, SERVICE_CHARGE}, TEMPLATES};
 use axum::{
     Json,
     response::IntoResponse,
     extract::Extension
 };
 use serde_json::{json,Value};
-use chrono::{Datelike, NaiveDate, Utc};
+use chrono::{Datelike, NaiveDate, NaiveDateTime, Utc};
 use crate::entities::prelude::*;
-use crate::utils::helper_functions::RATE_PER_UNIT;
-use rust_decimal::Decimal;
+use rust_decimal::{prelude::ToPrimitive, Decimal};
 use rust_decimal::prelude::FromPrimitive;
 
 #[derive(Serialize,Deserialize)]
@@ -30,6 +29,37 @@ struct CustomerDashboard{
 pub struct PaymentQuery{
     filter:Option<String>
 }
+
+#[derive(Serialize,Deserialize)]
+pub struct LatestInvoice{
+    invoice_no:String,
+    date:NaiveDateTime,
+    customer_name:String,
+    meter_no:String,
+    period:String,
+    consumption:i32,
+    rate:i32,
+    subtotal:i32,
+    service_charge:i32,
+    total:Decimal
+}
+
+#[derive(Serialize,Deserialize)]
+pub struct ReadingHistory {
+    pub history_id: i32,
+    pub period: String,
+    pub reading: i32,
+    pub consumption: i32,
+    pub amount: Decimal,
+    pub status: String,
+}
+
+#[derive(Serialize,Deserialize)]
+pub struct TrendsData{
+    labels:Vec<String>,
+    values:Vec<Decimal>
+}
+
 
 pub async fn root() ->&'static str {
     "Hello from Hephaestus Motor Inc"
@@ -313,7 +343,8 @@ pub async fn load_readings(Extension(db): Extension<Arc<DatabaseConnection>>) ->
             let formatted_period = NaiveDate::parse_from_str(&reading.period, "%Y-%m-%d")
                 .map(|date|format!("{} {}",date.format("%B"),date.format("%Y")))
                 .unwrap_or_else(|_|reading.period.clone());
-            let amount = (reading.units as i32) * RATE_PER_UNIT;
+            let readings_formated = reading.units as i32;
+            let amount = calculate_invoice_amount(&readings_formated).unwrap();
             // let formatted_timestamp = reading.timestamp.format("%B")
 
             json!({
@@ -524,10 +555,10 @@ pub async fn search_meters(Extension(db): Extension<Arc<DatabaseConnection>>,Pat
         -status
     -consumption_trend
         -labels vec 
-        -values kwh vec
+        -values  vec (units)
     -payment_history
         -labels vec
-        -values $ vec
+        -values vec (amount)
 
      */
     let meter_no = meter_no;
@@ -537,8 +568,15 @@ pub async fn search_meters(Extension(db): Extension<Arc<DatabaseConnection>>,Pat
         .await
         .unwrap();
 
-    let customers_id = meter.and_then(|m|m.customer_id).unwrap_or_else(||"Unknown".to_string());
+    let customers_id = meter.clone().and_then(|m|m.customer_id).unwrap_or_else(||"Unknown".to_string());
+    let customer = Customers::find()
+        .filter(customers::Column::Id.contains(customers_id.clone()))
+        .one(&*db)
+        .await
+        .unwrap();
 
+    let customer_name = customer.clone().and_then(|c|Some(c.name)).unwrap_or_else(||"Anon".to_string());
+    
     // balance
     let invoices_payments = Invoices::find()
         .find_also_related(payments::Entity)
@@ -581,15 +619,183 @@ pub async fn search_meters(Extension(db): Extension<Arc<DatabaseConnection>>,Pat
         .unwrap();
     let last_reading = last_reading_model.and_then(|l|Some(l.units)).unwrap_or(0);
 
+    // latest invoice
+    let invoice = Invoices::find()
+        .order_by_desc(invoices::Column::CreatedAt)
+        .filter(invoices::Column::CustomerId.contains(customers_id.clone()))
+        .one(&*db)
+        .await
+        .unwrap();
+
+    let invoice_data = LatestInvoice{
+        invoice_no:invoice.as_ref().map(|inv|inv.id.clone()).unwrap_or("Unknown".to_string()),
+        customer_name:customer_name.clone(),
+        meter_no:meter_no.clone(),
+        rate:RATE_PER_UNIT,
+        service_charge:SERVICE_CHARGE,
+        consumption:invoice.as_ref().map(|inv|{
+            let amount = Decimal::to_i32(&inv.amount).unwrap_or(0);
+            let consumption = amount - SERVICE_CHARGE;
+            consumption / RATE_PER_UNIT
+        }).unwrap_or(0),
+        date:invoice.as_ref().map(|inv|inv.created_at).unwrap_or_else(||Utc::now().naive_utc()),
+        period:invoice.as_ref().map(|inv|inv.created_at.month()).unwrap_or_else(||Utc::now().month()).to_string(),
+        subtotal:invoice.as_ref().map(|inv|{
+            let amount = Decimal::to_i32(&inv.amount).unwrap_or(0);
+            amount - SERVICE_CHARGE
+        }).unwrap_or(0),
+        total:invoice.as_ref().map(|inv|inv.amount).unwrap_or(Decimal::ZERO)
+
+    };
+
+    // history
+    let readings_with_meters = Readings::find()
+        .find_also_related(meters::Entity)
+        .filter(readings::Column::MeterId.contains(meter_no.clone()))
+        .all(&*db)
+        .await
+        .unwrap();
+    
+    let mut history_data = Vec::new();
+
+    // consumption trend
+    let mut consumption_labels = Vec::new();
+    let mut consumptions_values = Vec::new();
+
+    for (reading, maybe_meter) in readings_with_meters {
+        if let Some(meter) = maybe_meter {
+
+            // collect consumption data
+            consumption_labels.push(reading.period.clone());
+            consumptions_values.push(Decimal::from(reading.units));
+
+            // Get the customer for this meter
+            let customer = Customers::find_by_id(meter.customer_id.clone().unwrap_or_default())
+                .one(&*db)
+                .await
+                .unwrap();
+
+            // Find latest payment for that customer (optional)
+            let payment = if let Some(cust) = &customer {
+                Payments::find()
+                    .filter(payments::Column::CustomerId.eq(cust.id.clone()))
+                    .order_by_desc(payments::Column::CreatedAt)
+                    .one(&*db)
+                    .await
+                    .unwrap()
+            } else {
+                None
+            };
+
+            // Compute the fields
+            let reading_val = reading.units;
+            let amount = meter.amount.unwrap_or(Decimal::ZERO);
+            let consumption = reading_val;
+
+            let status = if let Some(p) = payment {
+                if p.amount >= amount {
+                    "Paid".to_string()
+                } else {
+                    "Pending".to_string()
+                }
+            } else {
+                "Unpaid".to_string()
+            };
+
+            history_data.push(ReadingHistory {
+                history_id: reading.id,
+                period: reading.period,
+                reading: reading.units,
+                consumption,
+                amount,
+                status,
+            });
+        }
+    }
+
+    // payment trend
+    let mut payment_labels = Vec::new();
+    let mut payment_values = Vec::new();
+
+    // fetch the payments related to the customer
+    let payments = Payments::find()
+        .filter(payments::Column::CustomerId.contains(customers_id.clone()))
+        .order_by_asc(payments::Column::CreatedAt)
+        .all(&*db)
+        .await
+        .unwrap();
+
+    for pmt in payments{
+        payment_labels.push(pmt.created_at.to_string());
+        payment_values.push(pmt.amount);
+    }
+
 
 
     // ++++++++++++++++++JSON RESPONSE+++++++++++++++++++
     let response = json!({
         "balance":balance,
         "last_payment":latest_payment,
-        "latest_reading":last_reading
+        "latest_reading":last_reading,
+        "latest_invoice":invoice_data,
+        "history":history_data,
+        "consumption_trend":TrendsData{
+            labels:consumption_labels,
+            values:consumptions_values
+        },
+        "payment_history":TrendsData{
+            labels:payment_labels,
+            values:payment_values
+        }
     });
 
     Json(response)
 
+}
+
+pub async  fn process_payments(Extension(db): Extension<Arc<DatabaseConnection>>,Json(payload): Json<Value>) ->impl IntoResponse {
+    let meter_no = payload.get("meter_no")
+        .and_then(|m|m.as_str())
+        .unwrap_or("Unknown")
+        .to_string();
+    let amount = payload.get("amount")
+        .and_then(|a|a.as_f64())
+        .unwrap_or(0.0);
+
+    // get the customer_id for the meter and the invoice_id
+    let meter = Meters::find()
+        .filter(meters::Column::Id.contains(&meter_no))
+        .one(&*db)
+        .await
+        .unwrap();
+
+    let customers_id = meter.clone().and_then(|m|m.customer_id).unwrap_or_else(||"Unknown".to_string());
+
+    // invoice_id is the latest_invoice
+    let latest_invoice = Invoices::find()
+        .filter(invoices::Column::CustomerId.contains(customers_id.clone()))
+        .order_by_desc(invoices::Column::CreatedAt)
+        .one(&*db)
+        .await
+        .unwrap();
+
+    let invoice_id = latest_invoice.clone().and_then(|inv|Some(inv.id)).unwrap_or("Unknown".to_string());
+    let gen_id = generate_payment_id(&db).await.unwrap();
+    let amount_formatted = Decimal::from_f64(amount).unwrap_or(Decimal::ZERO);
+
+    let payment = payments::ActiveModel{
+        id:Set(gen_id.to_owned()),
+        invoice_id:Set(invoice_id.to_owned()),
+        customer_id:Set(customers_id.to_owned()),
+        amount:Set(amount_formatted.to_owned()),
+        bal_amount:Set(None.to_owned()),
+        created_at:Set(Utc::now().naive_utc().to_owned())
+    };
+    
+    let _result = payment.insert(&*db).await.unwrap();
+    let response = json!({
+        "message":"Payment Completed".to_string()
+    });
+
+    Json(response)
 }
